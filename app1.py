@@ -49,18 +49,14 @@ def predict():
         return jsonify({'error': 'No file selected'}), 400
 
     try:
-        # Save uploaded file
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
 
-        # Preprocess image
         image = Image.open(filepath).convert("RGB")
-        image = image.resize((224, 224))  # Adjust to your model input shape
-
+        image = image.resize((224, 224))
         img_array = np.array(image) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Predict
         prediction = model.predict(img_array)
         predicted_class_index = np.argmax(prediction, axis=1)[0]
         predicted_class_name = class_names[predicted_class_index]
@@ -68,7 +64,8 @@ def predict():
         return jsonify({'prediction': predicted_class_name})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print("Error during prediction:", traceback.format_exc())
+        return jsonify({'error': 'Failed to process image or predict'}), 500
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

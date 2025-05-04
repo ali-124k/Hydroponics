@@ -1,59 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Plant Disease Prediction</title>
+    <meta charset="UTF-8">
+    <title>Plant Disease Classifier</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 50px;
+            text-align: center;
+            background-color: #f4f4f4;
         }
-        input[type="file"], button {
-            margin: 15px;
-            padding: 10px;
+        input[type="file"] {
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
         }
         #result {
-            margin-top: 25px;
-            font-size: 20px;
+            margin-top: 20px;
             font-weight: bold;
+            font-size: 20px;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <h1>Upload Leaf Image</h1>
+    <h1>Upload a Plant Leaf Image</h1>
     <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" id="file" name="file" accept="image/*" required>
-        <br>
+        <input type="file" name="file" id="file" accept="image/*" required><br>
         <button type="submit">Predict</button>
     </form>
     <div id="result"></div>
 
     <script>
-        document.getElementById('upload-form').addEventListener('submit', async function (event) {
+        document.getElementById('upload-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const fileInput = document.getElementById('file');
-            if (!fileInput.files.length) return;
+            const resultDiv = document.getElementById('result');
+
+            if (fileInput.files.length === 0) {
+                resultDiv.innerText = "Please select an image first.";
+                return;
+            }
 
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerText = 'Predicting...';
+            formData.append("file", fileInput.files[0]);
 
             try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
+                const response = await fetch("/predict", {
+                    method: "POST",
                     body: formData
                 });
 
-                const data = await response.json();
-                if (data.prediction) {
-                    resultDiv.innerText = 'Prediction: ' + data.prediction;
-                } else if (data.error) {
-                    resultDiv.innerText = 'Error: ' + data.error;
+                const text = await response.text();
+                try {
+                    const data = JSON.parse(text);
+
+                    if (response.ok && data.prediction) {
+                        resultDiv.innerText = `Prediction: ${data.prediction}`;
+                    } else {
+                        resultDiv.innerText = data.error ? `Error: ${data.error}` : "Unexpected response.";
+                    }
+
+                } catch (parseError) {
+                    resultDiv.innerText = "Error: Invalid response from server.";
+                    console.error("Parse error:", parseError);
+                    console.log("Raw response:", text);
                 }
+
             } catch (error) {
-                resultDiv.innerText = 'Error: Failed to get a response from server.';
+                resultDiv.innerText = "Error: Failed to connect to server.";
+                console.error("Fetch error:", error);
             }
         });
     </script>

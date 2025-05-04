@@ -16,31 +16,76 @@
             font-weight: bold;
             font-size: 18px;
         }
+        #loading {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #555;
+        }
+        #preview {
+            margin-top: 20px;
+            max-width: 300px;
+            border: 1px solid #ccc;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>Upload an Image for Prediction</h1>
     <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" name="file" id="file" required><br>
+        <input type="file" name="file" id="file" accept="image/*" required><br>
+        <img id="preview" alt="Image Preview" /><br>
         <button type="submit">Predict</button>
     </form>
+
+    <div id="loading" style="display: none;">Loading...</div>
     <div id="result"></div>
 
     <script>
+        const fileInput = document.getElementById('file');
+        const preview = document.getElementById('preview');
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+
+        fileInput.addEventListener('change', function () {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                preview.src = '';
+            }
+        });
+
         document.getElementById('upload-form').addEventListener('submit', async function(event) {
             event.preventDefault();
+            resultDiv.innerText = '';
+            loadingDiv.style.display = 'block';
+
             const formData = new FormData();
-            const fileField = document.querySelector("input[type='file']");
+            formData.append("file", fileInput.files[0]);
 
-            formData.append("file", fileField.files[0]);
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
 
-            const response = await fetch('/predict', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            document.getElementById('result').innerText = "Prediction: " + result.prediction;
+                const result = await response.json();
+                if (response.ok) {
+                    resultDiv.innerText = "Prediction: " + result.prediction;
+                } else {
+                    resultDiv.innerText = "Error: " + (result.error || "Something went wrong");
+                }
+            } catch (error) {
+                resultDiv.innerText = "Error: " + error.message;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
         });
     </script>
 </body>

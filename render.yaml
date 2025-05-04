@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: plant-disease-api
+    name: Hydroponics
     env: python
     buildCommand: ""
     startCommand: gunicorn app:app

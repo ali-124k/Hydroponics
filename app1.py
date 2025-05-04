@@ -1,17 +1,14 @@
-'''
 from flask import Flask, request, jsonify, render_template
-import tensorflow as tf
 from tensorflow.keras.models import load_model
 from PIL import Image
 import numpy as np
 import os
-
 app = Flask(__name__)
 
-# Load model
+# Load model once at startup
 model = load_model('best_model.h5')
 
-# Define class names in the same order they were used during training
+# Define class names used during training
 class_names = [
     'Apple___Apple_scab', 'Apple___Black_rot', 'Apple___Cedar_apple_rust', 'Apple___healthy',
     'Blueberry___healthy', 'Cherry_(including_sour)___Powdery_mildew', 'Cherry_(including_sour)___healthy',
@@ -27,33 +24,38 @@ class_names = [
     'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Tomato___Tomato_mosaic_virus', 'Tomato___healthy'
 ]
 
-# Serve the HTML page
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
 
-    file = request.files['file']
-    image = Image.open(file.stream).convert("RGB")
-    image = image.resize((224, 224))  # Make sure this matches your model input
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
 
-    img_array = np.array(image) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+        image = Image.open(file.stream).convert("RGB")
+        image = image.resize((224, 224))
+        img_array = np.array(image) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
-    prediction = model.predict(img_array)
-    predicted_class_index = np.argmax(prediction, axis=1)[0]
-    predicted_class_name = class_names[predicted_class_index]
+        prediction = model.predict(img_array)
+        predicted_class_index = np.argmax(prediction, axis=1)[0]
+        predicted_class_name = class_names[predicted_class_index]
 
-    return jsonify({'prediction': predicted_class_name})
+        return jsonify({'prediction': predicted_class_name})
+
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run()
-'''
+    app.run(debug=True)
 
+'''
 from flask import Flask, request, jsonify, render_template
 import tensorflow as tf
 from tensorflow.keras.models import load_model
@@ -128,3 +130,4 @@ def predict():
 
 if __name__ == '__main__':
     app.run()
+'''
